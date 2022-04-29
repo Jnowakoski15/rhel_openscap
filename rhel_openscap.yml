@@ -2,15 +2,29 @@
 - name: Prepare RHEL endpoints to generate OpenSCAP report
   hosts: "{{ target |default('rhel') }}"
   tasks:
-    - name: Enable App stream repo
-      community.general.rhsm_repository:
-        name: 
+    #- name: Enable App stream repo
+    #  community.general.rhsm_repository:
+    #    name: 
 
     - name: Install OpenSCAP & bzip2
       yum:
         name:
           - openscap-utils
           - bzip2
+          - scap-security-guide
         state: present
-    - name: 
-    
+
+    - name: run OpenSCAP
+      ansible.builtin.shell: |
+        oscap xccdf eval --report ..\{{ scap_report_name }} \
+        --profile {{scap_profile_title}} \
+        "{{ scap_profile_xml }}"          
+      args:
+        chdir: "{{ scap_profile_working_dir }}" 
+      ignore_errors: yes
+      tags: report
+
+
+
+
+         
