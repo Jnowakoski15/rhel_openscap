@@ -1,0 +1,16 @@
+---
+- name: Prepare RHEL endpoints to generate OpenSCAP report
+  hosts: "{{ target |default('rhel') }}"
+  tasks:
+    - name: Enable App stream repo
+      community.general.rhsm_repository:
+        name: 
+
+    - name: Install OpenSCAP & bzip2
+      yum:
+        name:
+          - openscap-utils
+          - bzip2
+        state: present
+    - name: 
+    

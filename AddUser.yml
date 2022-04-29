@@ -1,0 +1,12 @@
+---
+- name: Add user AnsibleTest
+  hosts: "{{ target | default('windows') }}"
+  tasks: 
+  - name: Add user AnsibleTest
+    ansible.windows.win_user:
+      name: AnsibleTest
+      password: "{{ password }}"
+      state: present
+      groups:
+        - "Remote Desktop Users"
+        - "Administrators"

@@ -1,0 +1,6 @@
+---
+- name: Apply STIG to Windows hosts
+  hosts: "{{ target | default('windows') }}"
+  roles:
+  - role: Windows-2019-STIG
+  
