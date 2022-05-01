@@ -35,7 +35,7 @@
     - name: move report to control host
       ansible.builtin.copy:
         src: "/home/runner/{{ target }}-{{ scap_report_name }}"
-        dest: "{{ playbook_dir }}/{{ target }}-{{ scap_report_name }}"
+        dest: "/home/{{ student_id }}/rhel_openscap/{{ target }}-{{ scap_report_name }}"
         owner: "{{ student_id }}"
         group: "{{ student_id }}"
       become: yes
@@ -63,7 +63,7 @@
         - name: move report to control host
           ansible.builtin.copy:
             src: "/home/runner/{{ target }}-results.xml"
-            dest: "{{ playbook_dir }}/{{ target }}-results.xml"
+            dest: "/home/{{ student_id }}/rhel_openscap/{{ target }}-results.xml"
             owner: "{{ student_id }}"
             group: "{{ student_id }}"
           become: yes
@@ -75,7 +75,7 @@
             --output "{{ target }}-remediation.yml" \
             --result-id "" "{{ target }}-results".xml         
           args:
-            chdir: "{{ playbook_dir }}" 
+            chdir: "/home/{{ student_id }}/rhel_openscap/" 
           ignore_errors: yes
           delegate_to: ansible-1
           become: yes
