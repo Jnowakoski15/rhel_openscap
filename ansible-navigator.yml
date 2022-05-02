@@ -1,0 +1,10 @@
+---
+ansible-navigator:
+
+  execution-environment:
+    image: registry.redhat.io/ansible-automation-platform-21/ee-supported-rhel8:latest
+
+  playbook-artifact:
+    enable: True
+    replay: /tmp/rhel_openscap.json
+    save-as: /tmp/rhel_openscap.json

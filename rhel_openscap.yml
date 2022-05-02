@@ -1,28 +1,89 @@
 ---
 - name: Prepare RHEL endpoints to generate OpenSCAP report
-  hosts: "{{ target |default('rhel') }}"
-  tasks:
-    #- name: Enable App stream repo
-    #  community.general.rhsm_repository:
-    #    name: 
-
-    - name: Install OpenSCAP & bzip2
-      yum:
+  # current playbook logic does not support a group as a target, check task comments
+  hosts: "{{ target | default('rhel') }}"
+  tasks: 
+    - name: Install OpenSCAP
+      ansible.builtin.package:
         name:
           - openscap-utils
-          - bzip2
           - scap-security-guide
         state: present
+      become: yes
 
-    - name: run OpenSCAP
+    # change {{ target }} to {{ ansible_hostname }} if you want to run against a group of RHEL hosts
+    - name: "run OpenSCAP scan and generate {{ target }}-{{ scap_report_name }} in {{ scap_profile_working_dir }}"
       ansible.builtin.shell: |
-        oscap xccdf eval --report ..\{{ scap_report_name }} \
+        oscap xccdf eval --report ./{{ target }}-{{ scap_report_name }} \
         --profile {{scap_profile_title}} \
         "{{ scap_profile_xml }}"          
       args:
         chdir: "{{ scap_profile_working_dir }}" 
       ignore_errors: yes
       tags: report
+      
+    # change {{ target }} to {{ ansible_hostname }} if you want to run against a group of RHEL hosts
+    - name: stage report in Execution Environment
+      ansible.builtin.fetch:
+        src: "{{ scap_profile_working_dir }}/{{ target }}-{{ scap_report_name }}"
+        dest: "/home/runner/{{ target }}-{{ scap_report_name }}"
+        flat: yes
+      tags: report
+
+    # change {{ target }} to {{ item }}, and add with_items: "{{ groups['rhel'] }}" or your group name instead of rhel
+    # if you want to run against a group of RHEL hosts  
+    - name: move report to control host
+      ansible.builtin.copy:
+        src: "/home/runner/{{ target }}-{{ scap_report_name }}"
+        dest: "/home/{{ student_id }}/rhel_openscap/{{ target }}-{{ scap_report_name }}"
+        owner: "{{ student_id }}"
+        group: "{{ student_id }}"
+      become: yes
+      delegate_to: ansible-1 # this only works in the workshop inventory
+      tags: report
+      # with_items: "{{ groups['rhel'] }}"
+
+    - name: Generate remediation playbook if condition is set
+      block:
+        - name: "Run an OpenSCAP scan and generate {{ target }}-results.xml in {{ scap_profile_working_dir }}"
+          ansible.builtin.shell: |
+            oscap xccdf eval --results ./{{ target }}-results.xml \
+            --profile {{scap_profile_title}} \
+            "{{ scap_profile_xml }}"          
+          args:
+            chdir: "{{ scap_profile_working_dir }}" 
+          ignore_errors: yes
+        
+        - name: stage report in Execution Environment
+          ansible.builtin.fetch:
+            src: "{{ scap_profile_working_dir }}/{{ target }}-results.xml"
+            dest: "/home/runner/{{ target }}-results.xml"
+            flat: yes
+
+        - name: move report to control host
+          ansible.builtin.copy:
+            src: "/home/runner/{{ target }}-results.xml"
+            dest: "/home/{{ student_id }}/rhel_openscap/{{ target }}-results.xml"
+            owner: "{{ student_id }}"
+            group: "{{ student_id }}"
+          become: yes
+          delegate_to: ansible-1 # this only works in the workshop inventory
+
+        - name:  Run oscap to generate a remediation playbook
+          ansible.builtin.shell: |
+            oscap xccdf generate fix --fix-type ansible \
+            --output "{{ target }}-remediation.yml" \
+            --result-id "" "{{ target }}-results".xml         
+          args:
+            chdir: "/home/{{ student_id }}/rhel_openscap/" 
+          ignore_errors: yes
+          delegate_to: ansible-1
+          become: yes
+          become_user: "{{ student_id }}"
+      # this condition determines when the remediation-generating block is run
+      # set generate_remediation: true to trigger
+      when: "{{ generate_remediation }}"
+
 
 
 
